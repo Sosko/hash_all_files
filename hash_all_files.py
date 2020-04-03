@@ -154,6 +154,8 @@ def main():
     print(time(), "Start walking")
     ##########################################
     for directory, _, files in walk(g_path):
+        if os.path.islink(directory):
+            continue
         for file in files:
             file = path.join(directory, file)
             q_files.put(file)
