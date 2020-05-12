@@ -1,5 +1,5 @@
 from sys import argv, platform
-from os import walk, path
+from os import walk, path, sep
 from time import sleep
 import hashlib
 from argparse import ArgumentParser, FileType, ArgumentDefaultsHelpFormatter
@@ -19,6 +19,7 @@ SUPPORTED_HASHES = {
     "sha1": hashlib.sha1,
     "sha256": hashlib.sha256
 }
+LOG_FILE = False
 
 
 ######################################################################################
@@ -53,19 +54,27 @@ def get_hash(q_f: Queue, q_o: Queue, hash_types):
                     if f.tell() >= size:
                         break
                 q_o.put([file, str(size)] + h.get())
-        except Exception as e:
-            q_o.put([file, -1, str(e)])
+        except KeyboardInterrupt:
+            return
+        except Exception as err:
+            q_o.put([file, -1, str(err)])
 
 
 ######################################################################################
 def write_out(out_file, q_o: Queue, hash_types):
-    with open(out_file, "w") as f:
+    with open(out_file, "w", encoding="utf-8") as f:
         f.write(";".join(["file", "size(B)"] + hash_types) + "\n")
-        while True:
-            data = q_o.get()
-            if not data:
-                break
-            f.write(";".join([str(x) for x in data]) + "\n")
+        try:
+            while True:
+                data = q_o.get()
+                if not data:
+                    break
+                f.write(";".join([str(x) for x in data]) + "\n")
+        except KeyboardInterrupt:
+            f.write("KeyboardInterrupt")
+        except Exception as err:
+            f.write("e: ")
+            f.write(str(err))
 
 
 ######################################################################################
@@ -75,11 +84,19 @@ def list_str(values):
 
 ######################################################################################
 def log(*args):
-    print(time(), " ".join([str(x) for x in args]))
+    global LOG_FILE
+    if not LOG_FILE:
+        print(time(), " ".join([str(x) for x in args]))
+        return
+    LOG_FILE.write(time(True))
+    LOG_FILE.write(": ")
+    LOG_FILE.write(" ".join([str(x) for x in args]))
+    LOG_FILE.write("\n")
 
 
 ######################################################################################
 def main():
+    global SUPPORTED_HASHES, LOG_FILE
     ##########################################
     parser = ArgumentParser(prog='hash_all_files', description='Create hash for all files in specific directory',
                             formatter_class=ArgumentDefaultsHelpFormatter)
@@ -92,7 +109,7 @@ def main():
         '--dir',
         metavar='start directory',
         type=str,
-        default="c:\\",
+        default=path.abspath(sep),
         nargs='?',
         help='Start directory')
     parser.add_argument(
@@ -105,6 +122,12 @@ def main():
         type=int,
         default=0,
         help='Set maximum of workers 0 = same as number of cores')
+    parser.add_argument(
+        '--log',
+        type=FileType('a', encoding='UTF-8'),
+        default=False,
+        help='Log file, if not defined, log to stdout')
+
     args = parser.parse_args()
     ##########################################
     p = path.abspath(args.dir)
@@ -129,12 +152,14 @@ def main():
     manager = Manager()
     q_files = manager.Queue()
     q_output = manager.Queue()
+    LOG_FILE = args.log
     ##########################################
     log("*" * 50)
     log("Starting with:")
     log("Output file:", path.abspath(args.output_file.name))
     log("Path:", g_path)
     log("Used hashes:", ", ".join(hashes_types))
+    log("Prepare workers")
     if 0 < args.w < number_of_cpu:
         log("Num of workers:", args.w)
         process = [Process(target=get_hash, args=(q_files, q_output, hashes_types)) for _ in range(args.w)]
@@ -142,9 +167,6 @@ def main():
         log("Num of workers:", number_of_cpu)
         process = [Process(target=get_hash, args=(q_files, q_output, hashes_types)) for _ in range(number_of_cpu)]
     log("*" * 50)
-    ##########################################
-    log("Prepare workers")
-
     worker = Process(target=write_out, args=(path.abspath(args.output_file.name), q_output, hashes_types))
     log("Init workers")
     worker.start()
@@ -163,9 +185,9 @@ def main():
                     sleep(1)
                 q_files.put(file)
     except Exception as e:
-        log("*"*50)
+        log("*" * 50)
         log(e)
-        log("*"*50)
+        log("*" * 50)
         while q_files.qsize() > 100:
             sleep(1)
         [q_files.put(False) for _ in process]
@@ -193,5 +215,8 @@ if __name__ == '__main__':
     if platform.startswith('win'):
         # On Windows calling this function is necessary.
         freeze_support()
-    main()
+    try:
+        main()
+    except BaseException as e:
+        log(e)
 ######################################################################################
