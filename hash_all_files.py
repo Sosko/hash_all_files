@@ -74,13 +74,15 @@ def list_str(values):
 
 
 ######################################################################################
+def log(*args):
+    print(time(), " ".join([str(x) for x in args]))
+
+
+######################################################################################
 def main():
     ##########################################
-    parser = ArgumentParser(
-        prog='hash_all_files',
-        description='Create hash for all files in specific directory',
-        formatter_class=ArgumentDefaultsHelpFormatter
-    )
+    parser = ArgumentParser(prog='hash_all_files', description='Create hash for all files in specific directory',
+                            formatter_class=ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         'output_file',
         metavar='output file',
@@ -104,65 +106,73 @@ def main():
         default=0,
         help='Set maximum of workers 0 = same as number of cores')
     args = parser.parse_args()
-    # print(args)
     ##########################################
     p = path.abspath(args.dir)
     number_of_cpu = cpu_count()
     if path.isdir(p):
         g_path = p
     else:
-        print(time(), "Invalid folder:", p)
+        log("Invalid folder:", p)
         parser.print_help()
         return
     ##########################################
     change = []
     for x in args.hash.replace(", ", "\n").replace(",", "\n").replace(" ", "\n").split("\n"):
-        #print(x)
         if x in SUPPORTED_HASHES:
             change.append(x)
     if len(change) > 0:
         hashes_types = change
     else:
-        print("Hash not recognized", args.hash)
+        log("Hash not recognized", args.hash)
         return
     ##########################################
-    print("*" * 50)
-    print("Starting with:")
-    print("Outupu file:", path.abspath(args.output_file.name))
-    print("Path:", g_path)
-    print("Used hashes:", ", ".join(hashes_types))
-    if 0 < args.w < number_of_cpu:
-        print("Num of workers:", args.w)
-    else:
-        print("Num of workers:", number_of_cpu)
-    print("*" * 50)
-    ##########################################
-    print(time(), "Prepare workers")
     manager = Manager()
     q_files = manager.Queue()
     q_output = manager.Queue()
-    worker = Process(target=write_out, args=(path.abspath(args.output_file.name), q_output, hashes_types))
+    ##########################################
+    log("*" * 50)
+    log("Starting with:")
+    log("Output file:", path.abspath(args.output_file.name))
+    log("Path:", g_path)
+    log("Used hashes:", ", ".join(hashes_types))
     if 0 < args.w < number_of_cpu:
+        log("Num of workers:", args.w)
         process = [Process(target=get_hash, args=(q_files, q_output, hashes_types)) for _ in range(args.w)]
     else:
+        log("Num of workers:", number_of_cpu)
         process = [Process(target=get_hash, args=(q_files, q_output, hashes_types)) for _ in range(number_of_cpu)]
-    print(time(), "Init workers")
+    log("*" * 50)
+    ##########################################
+    log("Prepare workers")
+
+    worker = Process(target=write_out, args=(path.abspath(args.output_file.name), q_output, hashes_types))
+    log("Init workers")
     worker.start()
     worker.join(0.1)
     [x.start() for x in process]
     [x.join(0.1) for x in process]
-    print(time(), "Start walking")
+    log("Start walking")
     ##########################################
-    for directory, _, files in walk(g_path):
-        if path.islink(directory):
-            continue
-        for file in files:
-            file = path.join(directory, file)
-            q_files.put(file)
+    try:
+        for directory, _, files in walk(g_path):
+            if path.islink(directory):
+                continue
+            for file in files:
+                file = path.join(directory, file)
+                while q_files.qsize() > 100:
+                    sleep(1)
+                q_files.put(file)
+    except Exception as e:
+        log("*"*50)
+        log(e)
+        log("*"*50)
+        while q_files.qsize() > 100:
+            sleep(1)
+        [q_files.put(False) for _ in process]
     ##########################################
-    print(time(), "Walking end")
+    log("Walking end")
     sleep(1)
-    print(time(), "Send end signal to workers")
+    log("Send end signal to workers")
     [q_files.put(False) for _ in process]
     ##########################################
     while True:
@@ -170,12 +180,12 @@ def main():
             break
         sleep(1)
     [x.join() for x in process]
-    print(time(), "Workers ended")
+    log("Workers ended")
     ##########################################
     q_output.put(False)
-    print(time(), "Finish writings")
+    log("Finish writings")
     worker.join()
-    print(time(), "End")
+    log("End")
 
 
 ######################################################################################
