@@ -5,6 +5,7 @@ import hashlib
 from argparse import ArgumentParser, FileType, ArgumentDefaultsHelpFormatter
 from multiprocessing import Process, Manager, cpu_count, freeze_support, Queue
 from datetime import datetime
+from mywalk import mywalk
 
 
 def time(for_file=False):
@@ -115,7 +116,7 @@ def main():
     parser.add_argument(
         '--hash',
         type=str,
-        default="md5, sha1",
+        default="md5",
         help='Select hash functions [' + ', '.join(SUPPORTED_HASHES) + ']')
     parser.add_argument(
         '--w',
@@ -176,17 +177,17 @@ def main():
     log("Start walking")
     ##########################################
     try:
-        for directory, _, files in walk(g_path):
-            if path.islink(directory):
+        for directory, f in mywalk(g_path):
+            if type(f) != str:
+                q_output.put([directory, -1, str(f)])
                 continue
-            for file in files:
-                file = path.join(directory, file)
-                while q_files.qsize() > 100:
-                    sleep(1)
-                q_files.put(file)
-    except Exception as e:
+            file = path.join(directory, f)
+            while q_files.qsize() > 100:
+                sleep(1)
+            q_files.put(file)
+    except Exception as ee:
         log("*" * 50)
-        log(e)
+        log(ee)
         log("*" * 50)
         while q_files.qsize() > 100:
             sleep(1)
