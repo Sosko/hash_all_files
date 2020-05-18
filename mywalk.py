@@ -25,5 +25,5 @@ def mywalk(start_path):
                     yield d, file
                 elif os.path.isdir(file_with_path) and not is_junction(file_with_path):
                     nextdirs.append(file_with_path)
-        except PermissionError:
-            yield d, PermissionError()
+        except PermissionError as err:
+            yield d, err
