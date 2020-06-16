@@ -1,7 +1,7 @@
 from multiprocessing import Process, Queue
 from os import path
 
-from DoHash import DoHash
+from src.DoHash import DoHash
 
 
 class HashFoundFiles(Process):

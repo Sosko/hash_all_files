@@ -1,4 +1,4 @@
-from constants import SUPPORTED_HASHES
+from src.constants import SUPPORTED_HASHES
 
 
 class DoHash:

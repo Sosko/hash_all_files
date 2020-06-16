@@ -1,7 +1,7 @@
 from multiprocessing import cpu_count
 from os import sep, path
 from argparse import ArgumentParser, FileType, ArgumentDefaultsHelpFormatter
-from constants import SUPPORTED_HASHES
+from src.constants import SUPPORTED_HASHES
 
 
 def parse_input():

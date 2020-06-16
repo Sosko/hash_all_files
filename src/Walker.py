@@ -2,7 +2,7 @@ from multiprocessing import Process, Queue
 from os import path, listdir, readlink
 from time import sleep
 
-from constants import MAX_LENGTH_QUEUE
+from src.constants import MAX_LENGTH_QUEUE
 
 
 class Walker(Process):

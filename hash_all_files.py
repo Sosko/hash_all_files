@@ -1,17 +1,16 @@
 #!/usr/bin/python3
-import sys
-import traceback
-from sys import platform
+from traceback import print_exc, print_stack
+from sys import platform, exc_info
 from os import path
 from time import sleep
 from multiprocessing import Manager, cpu_count, freeze_support
 
-from HashFoundFiles import HashFoundFiles
-from Logger import Logger
-from Walker import Walker
-from WriterOut import WriterOut
-from constants import SUPPORTED_HASHES
-from parse_input import parse_input
+from src.HashFoundFiles import HashFoundFiles
+from src.Logger import Logger
+from src.Walker import Walker
+from src.WriterOut import WriterOut
+from src.constants import SUPPORTED_HASHES
+from src.parse_input import parse_input
 
 
 def main():
@@ -73,8 +72,8 @@ def main():
     except BaseException as e3:
         print("Start Workers error:")
         print(e3)
-        print(sys.exc_info())
-        print(traceback.print_exc())
+        print(exc_info())
+        print(print_exc())
     # Start walking
     try:
         while P_WALKER.is_alive():
@@ -90,7 +89,7 @@ def main():
             sleep(0.1)
     except Exception as e2:
         P_LOG.log(e2)
-        P_LOG.log(traceback.print_stack())
+        P_LOG.log(print_stack())
         P_LOG.kill()
         return
     P_LOG.log("Walker finished")
@@ -126,6 +125,6 @@ if __name__ == '__main__':
     except BaseException as e:
         print("Main error:")
         print(e)
-        print(traceback.print_stack())
-        print(sys.exc_info())
+        print(print_stack())
+        print(exc_info())
 ######################################################################################
