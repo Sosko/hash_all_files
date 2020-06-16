@@ -14,3 +14,5 @@ optional arguments:
   --w W                 Set maximum of workers 0 = same as number of cores (default: 0)
   --log LOG             Log file, if not defined, log to stdout (default: False)
 ```
+
+For windows use relesed EXE file
