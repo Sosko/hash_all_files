@@ -19,7 +19,7 @@ def main():
     # Test inputs
     # Logger
     level = args.level * 10
-    if level > 50:
+    if 0 > level > 50:
         level = 50
     if args.log:
         basicConfig(filename=path.abspath(args.log.name), level=level, format='%(asctime)s %(levelname)s:%(message)s')

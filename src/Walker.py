@@ -25,7 +25,7 @@ class Walker(Process):
                     continue
                 file = path.join(directory, f)
                 while self.f.qsize() > MAX_LENGTH_QUEUE:
-                    sleep(0.1)
+                    sleep(0.01)
                 self.f.put(file)
         except Exception as e:
             debug("walker->run" + str(e))
