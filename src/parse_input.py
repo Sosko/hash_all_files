@@ -11,12 +11,12 @@ def parse_input():
                             formatter_class=ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         'output_file',
-        metavar='output file',
+        metavar='output_file',
         type=FileType('w', encoding='UTF-8'),
         help='Output file')
     parser.add_argument(
         '--dir',
-        metavar='start directory',
+        metavar='start_directory',
         type=str,
         default=path.abspath(sep),
         nargs='?',
@@ -36,4 +36,9 @@ def parse_input():
         type=FileType('a', encoding='UTF-8'),
         default=False,
         help='Log file, if not defined, log to stdout')
+    parser.add_argument(
+        '--level',
+        type=int,
+        default=2,
+        help='Log level (0-5)')
     return parser

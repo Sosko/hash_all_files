@@ -1,26 +1,25 @@
 from multiprocessing import Process, Queue
 from os import path, listdir, readlink
 from time import sleep
-
+from logging import debug
 from src.constants import MAX_LENGTH_QUEUE
 
 
 class Walker(Process):
-    def __init__(self, directory: str, output: Queue, file_output: Queue, logger: Queue, log_out: Queue):
+    def __init__(self, directory: str, output: Queue, file_output: Queue, logger: Queue):
         super().__init__()
         self.directory = directory
         self.o = output
         self.f = file_output
         self.log = logger
         self.visited = []
-        self.log_out = log_out
 
     def run(self):
         try:
             for directory, f in self.walk(self.directory):
                 if directory not in self.visited:
                     self.visited.append(directory)
-                    self.log.put(directory)
+                    debug(directory)
                 if type(f) != str:
                     self.o.put([directory, -1, str(f)])
                     continue
@@ -29,7 +28,7 @@ class Walker(Process):
                     sleep(0.1)
                 self.f.put(file)
         except Exception as e:
-            self.log_out.put(("walker->run", e))
+            debug("walker->run" + str(e))
 
     def walk(self, start_path):
         if not path.isdir(start_path):
@@ -50,7 +49,7 @@ class Walker(Process):
                 # self.log_out.put(("walker->walk->PermissionError", err, d))
                 yield d, err
             except Exception as e:
-                self.log_out.put(("walker->walk->Exception", e, d))
+                debug("walker->walk->Exception: " + str(e) + " => " + str(d))
                 continue
 
     def is_junction(self, test_path: str) -> bool:
